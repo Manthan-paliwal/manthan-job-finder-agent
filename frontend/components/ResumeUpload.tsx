@@ -5,116 +5,149 @@ import axios from "axios";
 
 export default function ResumeUpload() {
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
-  async function uploadResume() {
+  async function analyzeResume() {
     if (!file) {
-      alert("Please select a PDF");
+      alert("Please select a PDF file");
       return;
     }
-
-    const formData = new FormData();
-    formData.append("file", file);
 
     try {
       setLoading(true);
 
+      const formData = new FormData();
+      formData.append("file", file);
+
       const response = await axios.post(
         "http://127.0.0.1:8000/analyze-resume",
-        formData
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
-      setResult(response.data.analysis);
+      console.log("FULL RESPONSE:", response.data);
+
+      setResult(response.data);
     } catch (error) {
       console.error(error);
-      alert("Upload failed");
+      alert("Analysis Failed");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="p-10 max-w-5xl mx-auto">
-      <h1 className="text-4xl font-bold mb-6">
-        AI Resume ATS Analyzer
-      </h1>
+    <div className="min-h-screen bg-black text-white flex justify-center">
+      <div className="w-full max-w-5xl p-10">
+        <h1 className="text-6xl font-bold mb-10">
+          AI Resume ATS Analyzer
+        </h1>
 
-      <input
-        type="file"
-        accept=".pdf"
-        onChange={(e) => {
-          if (e.target.files?.[0]) {
-            setFile(e.target.files[0]);
-          }
-        }}
-      />
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={(e) => {
+            if (e.target.files?.[0]) {
+              setFile(e.target.files[0]);
+            }
+          }}
+        />
 
-      <br />
-      <br />
+        <div className="mt-4 text-xl">
+          {file ? file.name : "No file selected"}
+        </div>
 
-      <button
-        onClick={uploadResume}
-        className="bg-black text-white px-5 py-3 rounded"
-      >
-        {loading ? "Analyzing..." : "Analyze Resume"}
-      </button>
+        <button
+          onClick={analyzeResume}
+          disabled={loading}
+          className="mt-6 border px-6 py-3 rounded text-xl"
+        >
+          {loading ? "Analyzing..." : "Analyze Resume"}
+        </button>
 
-      {result && (
-        <div className="mt-10 border rounded p-6">
+        {result && (
+          <div className="mt-10 border rounded p-8">
+            <h2 className="text-4xl font-bold mb-8">
+              ATS Analysis Result
+            </h2>
 
-          <h2 className="text-3xl font-bold mb-5">
-            ATS Score: {result.score}%
-          </h2>
+            {/* SCORE */}
+            <div className="mb-8">
+              <h3 className="text-3xl font-bold">
+                ATS Score:{" "}
+                {result.analysis?.score ||
+                  result.score ||
+                  "Not Found"}
+                /100
+              </h3>
+            </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
-
-            <div>
-              <h3 className="font-bold text-xl mb-2">
+            {/* STRENGTHS */}
+            <div className="mb-8">
+              <h3 className="text-2xl font-bold mb-3">
                 Strengths
               </h3>
 
-              <ul>
-                {result.strengths?.map(
-                  (item: string, index: number) => (
-                    <li key={index}>✅ {item}</li>
-                  )
-                )}
+              <ul className="list-disc pl-6">
+                {(result.analysis?.strengths ||
+                  result.strengths ||
+                  []
+                ).map((item: string, index: number) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-bold text-xl mb-2">
+            {/* MISSING SKILLS */}
+            <div className="mb-8">
+              <h3 className="text-2xl font-bold mb-3">
                 Missing Skills
               </h3>
 
-              <ul>
-                {result.missing_skills?.map(
-                  (item: string, index: number) => (
-                    <li key={index}>⚠️ {item}</li>
-                  )
-                )}
+              <ul className="list-disc pl-6">
+                {(result.analysis?.missing_skills ||
+                  result.missing_skills ||
+                  []
+                ).map((item: string, index: number) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-bold text-xl mb-2">
+            {/* IMPROVEMENTS */}
+            <div className="mb-8">
+              <h3 className="text-2xl font-bold mb-3">
                 Improvements
               </h3>
 
-              <ul>
-                {result.improvements?.map(
-                  (item: string, index: number) => (
-                    <li key={index}>• {item}</li>
-                  )
-                )}
+              <ul className="list-disc pl-6">
+                {(result.analysis?.improvements ||
+                  result.improvements ||
+                  []
+                ).map((item: string, index: number) => (
+                  <li key={index}>{item}</li>
+                ))}
               </ul>
             </div>
 
-          </div>
+            {/* RAW RESPONSE DEBUG */}
+            <div className="mt-10">
+              <h3 className="text-xl font-bold mb-3">
+                Debug Response
+              </h3>
 
-        </div>
-      )}
+              <pre className="bg-gray-900 p-4 rounded overflow-auto text-sm">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
